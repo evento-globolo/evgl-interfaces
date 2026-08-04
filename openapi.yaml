@@ -1,0 +1,74 @@
+openapi: 3.1.0
+info:
+  title: Evento Globolo API
+  version: 0.1.0
+  description: "Aggregate, normalize, deduplicate, search, and follow events from sources such as Eventbrite, Meetup, LinkedIn, Facebook, and Craigslist through authorized APIs or permitted ingestion paths."
+servers:
+  - url: http://localhost:8080
+paths:
+  /healthz:
+    get:
+      operationId: health
+      responses:
+        '200':
+          description: service is alive
+  /api/v1/events:
+    get:
+      operationId: listEvents
+      responses:
+        '200':
+          description: bounded list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+    post:
+      operationId: createEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEvent'
+      responses:
+        '201':
+          description: created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '422':
+          description: validation failure
+  /api/v1/events/{id}:
+    get:
+      operationId: getEvent
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '404': { description: not found }
+  /ws:
+    get:
+      operationId: websocket
+      responses:
+        '101': { description: WebSocket upgrade }
+components:
+  schemas:
+    Event:
+      $ref: './schemas/event.json'
+    CreateEvent:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 256 }
+        summary: { type: string, maxLength: 4000 }

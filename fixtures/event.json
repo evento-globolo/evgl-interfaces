@@ -1,0 +1,12 @@
+{
+  "id": "00000000-0000-4000-8000-000000000001",
+  "title": "Example Event",
+  "summary": "A global event discovery and aggregation platform.",
+  "status": "draft",
+  "created_at": "2026-08-04T12:00:00Z",
+  "updated_at": "2026-08-04T12:00:00Z",
+  "source": "eventbrite",
+  "venue": "Parque Explora",
+  "starts_at": "2026-09-01T23:00:00Z",
+  "source_url": "https://example.com/events/123"
+}

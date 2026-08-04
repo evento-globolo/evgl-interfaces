@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/evento-globolo/evgl-interfaces/schemas/event.json",
+  "title": "Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "title",
+    "summary",
+    "status",
+    "created_at",
+    "updated_at",
+    "source",
+    "venue",
+    "starts_at",
+    "source_url"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 4000
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "published",
+        "cancelled",
+        "completed"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "type": "string"
+    },
+    "venue": {
+      "type": "string"
+    },
+    "starts_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source_url": {
+      "type": "string",
+      "format": "uri"
+    }
+  }
+}

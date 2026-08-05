@@ -1,0 +1,16 @@
+[package]
+org = "evento-globolo"
+name = "evgl-interfaces"
+version = "0.1.0"
+description = "Shared interfaces and schemas for Evento Globolo"
+license = "MIT"
+language = "polyglot"
+
+[package.repository]
+vcs = "git"
+url = "https://github.com/evento-globolo/evgl-interfaces"
+
+[publish]
+include_readme = true
+tag_format = "v{version}"
+exclude = [".env", ".env.*", "node_modules/**", "target/**", "dist/**", "*.log"]

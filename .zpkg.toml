@@ -14,3 +14,6 @@ url = "https://github.com/evento-globolo/evgl-interfaces"
 include_readme = true
 tag_format = "v{version}"
 exclude = [".env", ".env.*", "node_modules/**", "target/**", "dist/**", "*.log"]
+
+[targets.repository]
+dir = "."

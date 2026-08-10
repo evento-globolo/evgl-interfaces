@@ -25,6 +25,48 @@ def main() -> int:
     if missing:
         raise SystemExit(f"missing required paths: {missing}")
 
+    provider_policy = json.loads(
+        (ROOT / "policy/provider-capabilities.json").read_text(encoding="utf-8")
+    )
+    expected_providers = {
+        "eventbrite",
+        "meetup",
+        "meta_facebook_page",
+        "craigslist",
+        "generic_webhook",
+    }
+    if provider_policy.get("version") != 1:
+        raise SystemExit("provider capability policy must remain at version 1")
+    if set(provider_policy.get("providers", {})) != expected_providers:
+        raise SystemExit("provider capability policy does not define the closed provider set")
+    if provider_policy["providers"]["craigslist"].get("automated_publish") is not False:
+        raise SystemExit("Craigslist must remain a manual handoff")
+
+    target_schema = json.loads(
+        (ROOT / "schemas/provider-target.schema.json").read_text(encoding="utf-8")
+    )
+    if len(target_schema.get("oneOf", [])) != len(expected_providers):
+        raise SystemExit("provider target schema must define one option shape per provider")
+    serialized_target_schema = json.dumps(target_schema).lower()
+    for forbidden in ("client_secret", "access_token", "refresh_token", "password"):
+        if forbidden in serialized_target_schema:
+            raise SystemExit(f"provider target schema accepts forbidden secret field: {forbidden}")
+
+    openapi = (ROOT / "openapi.yaml").read_text(encoding="utf-8")
+    for route in (
+        "/v1/providers:",
+        "/v1/oauth/{provider}/start:",
+        "/v1/connections:",
+        "/v1/events/{id}/cross-post:",
+        "/v1/jobs/{id}:",
+    ):
+        if route not in openapi:
+            raise SystemExit(f"OpenAPI contract is missing {route}")
+
+    asyncapi = (ROOT / "asyncapi.yaml").read_text(encoding="utf-8")
+    if "/v1/jobs/{jobId}/ws" not in asyncapi or "JobUpdate:" not in asyncapi:
+        raise SystemExit("AsyncAPI contract is missing cross-post job updates")
+
     for path in ROOT.rglob("*"):
         if not path.is_file() or ".git" in path.parts or path.stat().st_size > 1_000_000:
             continue

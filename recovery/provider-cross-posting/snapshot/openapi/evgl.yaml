@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: Canonical event management and capability-aware cross-posting.
 servers:
-  - url: http://localhost:8080
+  - url: https://api.evento-globolo.example
 security:
   - bearerAuth: []
 paths:
@@ -14,14 +14,7 @@ paths:
       operationId: health
       responses:
         "200":
-          description: Service is alive
-  /readyz:
-    get:
-      security: []
-      operationId: ready
-      responses:
-        "204":
-          description: Service dependencies are ready
+          description: Healthy
   /v1/providers:
     get:
       security: []
@@ -42,48 +35,14 @@ paths:
         - $ref: "#/components/parameters/Provider"
       responses:
         "200":
-          description: OAuth authorization URL and state
-  /v1/oauth/{provider}/callback:
-    get:
-      security: []
-      operationId: completeOAuth
-      parameters:
-        - $ref: "#/components/parameters/Provider"
-      responses:
-        "200":
-          description: Provider account connected
-  /v1/connections/manual:
-    post:
-      operationId: createManualConnection
-      responses:
-        "200":
-          description: Manual provider connection created
+          description: OAuth authorization URL
   /v1/connections:
     get:
       operationId: listConnections
       responses:
         "200":
           description: Connected provider accounts
-  /v1/connections/{id}:
-    delete:
-      operationId: deleteConnection
-      parameters:
-        - $ref: "#/components/parameters/Identifier"
-      responses:
-        "204":
-          description: Connection deleted
   /v1/events:
-    get:
-      operationId: listEvents
-      responses:
-        "200":
-          description: Bounded list of canonical events
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Event"
     post:
       operationId: createEvent
       requestBody:
@@ -95,31 +54,14 @@ paths:
       responses:
         "201":
           description: Canonical event created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Event"
-        "422":
-          description: Validation failure
-  /v1/events/{id}:
-    get:
-      operationId: getEvent
-      parameters:
-        - $ref: "#/components/parameters/Identifier"
-      responses:
-        "200":
-          description: Canonical event
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Event"
-        "404":
-          description: Event not found
-  /v1/events/{id}/cross-post:
+  /v1/events/{eventId}/cross-post:
     post:
       operationId: crossPostEvent
       parameters:
-        - $ref: "#/components/parameters/Identifier"
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
         - name: Idempotency-Key
           in: header
           required: true
@@ -139,31 +81,18 @@ paths:
                     $ref: "#/components/schemas/PublishTarget"
       responses:
         "202":
-          description: Cross-post job queued
-        "200":
-          description: Existing idempotent job returned
-  /v1/jobs/{id}:
+          description: Job queued
+  /v1/jobs/{jobId}:
     get:
       operationId: getJob
       parameters:
-        - $ref: "#/components/parameters/Identifier"
+        - name: jobId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
       responses:
         "200":
           description: Job and provider target state
-  /v1/jobs/{id}/ws:
-    get:
-      operationId: jobWebSocket
-      parameters:
-        - $ref: "#/components/parameters/Identifier"
-      responses:
-        "101":
-          description: Authenticated WebSocket upgrade for job progress
-  /v1/ws:
-    get:
-      operationId: eventWebSocket
-      responses:
-        "101":
-          description: Authenticated WebSocket upgrade for event changes
 components:
   securitySchemes:
     bearerAuth:
@@ -177,11 +106,6 @@ components:
       required: true
       schema:
         $ref: "#/components/schemas/Provider"
-    Identifier:
-      name: id
-      in: path
-      required: true
-      schema: { type: string, format: uuid }
   schemas:
     Provider:
       type: string
@@ -209,17 +133,8 @@ components:
             notes:
               type: array
               items: { type: string }
-    Event:
-      allOf:
-        - $ref: "#/components/schemas/CreateEvent"
-        - type: object
-          required: [id, owner_id]
-          properties:
-            id: { type: string, format: uuid }
-            owner_id: { type: string, format: uuid }
     CreateEvent:
       type: object
-      additionalProperties: false
       required: [title, summary, description_html, starts_at, ends_at, timezone, canonical_url]
       properties:
         title: { type: string, minLength: 1, maxLength: 200 }
@@ -227,7 +142,7 @@ components:
         description_html: { type: string }
         starts_at: { type: string, format: date-time }
         ends_at: { type: string, format: date-time }
-        timezone: { type: string, minLength: 1 }
+        timezone: { type: string }
         canonical_url: { type: string, format: uri }
         online_url: { type: [string, "null"], format: uri }
         venue: { type: [object, "null"] }
@@ -237,10 +152,9 @@ components:
         metadata: { type: object }
     PublishTarget:
       type: object
-      additionalProperties: false
       required: [provider, connection_id, options]
       properties:
         provider: { $ref: "#/components/schemas/Provider" }
         connection_id: { type: string, format: uuid }
         options:
-          $ref: "./schemas/provider-target.schema.json"
+          $ref: "../schema/provider-target.schema.json"

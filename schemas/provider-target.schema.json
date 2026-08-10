@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/evento-globolo/evgl-interfaces/schemas/provider-target.schema.json",
+  "title": "Provider target options",
+  "type": "object",
+  "oneOf": [
+    {
+      "title": "Eventbrite options",
+      "properties": {
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "default": "USD"
+        },
+        "ticket_name": {
+          "type": "string",
+          "default": "General Admission"
+        },
+        "quantity_total": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "free": {
+          "type": "boolean"
+        },
+        "cost_minor": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Meetup options",
+      "required": [
+        "group_urlname"
+      ],
+      "properties": {
+        "group_urlname": {
+          "type": "string",
+          "minLength": 1
+        },
+        "venue_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "publish_status": {
+          "enum": [
+            "DRAFT",
+            "PUBLISHED"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Meta Facebook Page options",
+      "properties": {
+        "message": {
+          "type": "string",
+          "maxLength": 5000
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Craigslist handoff options",
+      "properties": {
+        "posting_url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Generic webhook options",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        }
+      },
+      "additionalProperties": false
+    }
+  ]
+}

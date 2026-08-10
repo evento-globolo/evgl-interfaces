@@ -1,34 +1,28 @@
 asyncapi: 3.0.0
 info:
-  title: Evento Globolo event and cross-post updates
+  title: Evento Globolo Job Updates
   version: 0.1.0
 servers:
-  local:
-    host: localhost:8080
-    protocol: ws
+  production:
+    host: api.evento-globolo.example
+    pathname: /v1/jobs/{jobId}/ws
+    protocol: wss
+    security:
+      - $ref: "#/components/securitySchemes/bearer"
 channels:
-  eventChanges:
-    address: /v1/ws
-    messages:
-      EventChanged:
-        $ref: '#/components/messages/EventChanged'
   jobUpdates:
     address: /v1/jobs/{jobId}/ws
     parameters:
       jobId:
         description: Cross-post job UUID
     messages:
-      JobUpdate:
-        $ref: '#/components/messages/JobUpdate'
+      jobUpdate:
+        $ref: "#/components/messages/JobUpdate"
 operations:
-  receiveChanges:
+  receiveUpdates:
     action: receive
     channel:
-      $ref: '#/channels/eventChanges'
-  receiveJobUpdates:
-    action: receive
-    channel:
-      $ref: '#/channels/jobUpdates'
+      $ref: "#/channels/jobUpdates"
 components:
   securitySchemes:
     bearer:
@@ -36,16 +30,6 @@ components:
       scheme: bearer
       bearerFormat: JWT
   messages:
-    EventChanged:
-      payload:
-        type: object
-        required: [event_id, event_type, occurred_at, data]
-        properties:
-          event_id: { type: string, format: uuid }
-          event_type: { type: string }
-          occurred_at: { type: string, format: date-time }
-          data:
-            $ref: './schemas/event.json'
     JobUpdate:
       payload:
         type: object

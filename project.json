@@ -6,9 +6,13 @@
   "required_paths": [
     ".github/workflows/ci.yml",
     ".gitignore",
+    "asyncapi.yaml",
     "asyncapi/asyncapi.json",
+    "openapi.yaml",
     "openapi/openapi.json",
+    "policy/provider-capabilities.json",
     "schemas/event.schema.json",
+    "schemas/provider-target.schema.json",
     "scripts/verify_repo.py"
   ],
   "schema_version": 1,

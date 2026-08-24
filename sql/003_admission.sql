@@ -185,6 +185,7 @@ as $$
 declare
     existing_receipt admission_scan_receipts%rowtype;
 begin
+    perform pg_advisory_xact_lock(hashtextextended(p_scanner_id::text, 3465));
     select * into existing_receipt
       from admission_scan_receipts
      where scanner_id = p_scanner_id and scanner_sequence = p_scanner_sequence;
@@ -194,6 +195,14 @@ begin
             raise exception 'EVGL_SCANNER_SEQUENCE_CONFLICT' using errcode = '22023';
         end if;
         return existing_receipt.receipt_id;
+    end if;
+
+    if p_scanner_sequence <= coalesce((
+        select max(scanner_sequence)
+          from admission_scan_receipts
+         where scanner_id = p_scanner_id
+    ), -1) then
+        raise exception 'EVGL_SCANNER_SEQUENCE_REWIND' using errcode = '22023';
     end if;
 
     if p_validation_status not in ('candidate', 'rejected') then

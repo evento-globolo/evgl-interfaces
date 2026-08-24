@@ -1,3 +1,8 @@
+pub mod ticketing;
+
+pub const TICKETING_INVENTORY_MIGRATION: &str =
+    include_str!("../sql/002_ticketing_inventory.sql");
+
     use chrono::{DateTime, Utc};
     use serde::{Deserialize, Serialize};
     use std::fmt;

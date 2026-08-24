@@ -116,7 +116,10 @@ create unique index if not exists ticket_waitlist_one_active_offer_idx
     on ticket_waitlist_offers(waitlist_entry_id)
     where status = 'active';
 
-create or replace function evgl_expire_ticket_holds(p_now timestamptz)
+create or replace function evgl_expire_ticket_holds(
+    p_now timestamptz,
+    p_event_id uuid default null
+)
 returns bigint
 language plpgsql
 as $$
@@ -127,7 +130,9 @@ begin
     for expired_hold in
         update ticket_holds
            set status = 'expired', updated_at = p_now
-         where status = 'held' and expires_at <= p_now
+         where status = 'held'
+           and expires_at <= p_now
+           and (p_event_id is null or event_id = p_event_id)
          returning id, event_id, ticket_class_id, quantity
     loop
         insert into ticket_inventory_ledger (
@@ -202,7 +207,7 @@ begin
     end if;
 
     perform pg_advisory_xact_lock(hashtextextended(p_event_id::text, 3464));
-    perform evgl_expire_ticket_holds(p_now);
+    perform evgl_expire_ticket_holds(p_now, p_event_id);
 
     select inventory.capacity, class.capacity,
            class.sale_starts_at, class.sale_ends_at
@@ -286,7 +291,7 @@ begin
         raise exception 'EVGL_HOLD_NOT_FOUND' using errcode = 'P0002';
     end if;
     perform pg_advisory_xact_lock(hashtextextended(selected_hold.event_id::text, 3464));
-    perform evgl_expire_ticket_holds(p_now);
+    perform evgl_expire_ticket_holds(p_now, selected_hold.event_id);
     select * into selected_hold from ticket_holds where id = p_hold_id for update;
     if selected_hold.status <> 'held' or selected_hold.expires_at <= p_now then
         raise exception 'EVGL_HOLD_NOT_ACTIVE' using errcode = '22023';
@@ -349,7 +354,7 @@ begin
     end if;
 
     perform pg_advisory_xact_lock(hashtextextended(selected_order.event_id::text, 3464));
-    perform evgl_expire_ticket_holds(p_now);
+    perform evgl_expire_ticket_holds(p_now, selected_order.event_id);
     select * into selected_hold
       from ticket_holds where id = selected_order.hold_id for update;
     if selected_hold.status <> 'held' or selected_hold.expires_at <= p_now then
@@ -502,7 +507,7 @@ declare
     offer_id uuid;
 begin
     perform pg_advisory_xact_lock(hashtextextended(p_event_id::text, 3464));
-    perform evgl_expire_ticket_holds(p_now);
+    perform evgl_expire_ticket_holds(p_now, p_event_id);
 
     select * into selected_entry
       from ticket_waitlist

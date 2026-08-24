@@ -74,7 +74,10 @@ create table if not exists admission_scan_receipts (
     validation_status text not null
         check (validation_status in ('candidate', 'rejected')),
     validation_reason text,
-    unique (scanner_id, scanner_sequence)
+    sequence_out_of_order boolean not null default false,
+    unique (scanner_id, scanner_sequence),
+    foreign key (scanner_id, scanner_key_id)
+        references admission_scanner_keys(scanner_id, key_id)
 );
 
 create index if not exists admission_scan_receipts_ticket_idx
@@ -184,6 +187,7 @@ language plpgsql
 as $$
 declare
     existing_receipt admission_scan_receipts%rowtype;
+    sequence_out_of_order boolean;
 begin
     perform pg_advisory_xact_lock(hashtextextended(p_scanner_id::text, 3465));
     select * into existing_receipt
@@ -197,13 +201,10 @@ begin
         return existing_receipt.receipt_id;
     end if;
 
-    if p_scanner_sequence <= coalesce((
-        select max(scanner_sequence)
-          from admission_scan_receipts
-         where scanner_id = p_scanner_id
-    ), -1) then
-        raise exception 'EVGL_SCANNER_SEQUENCE_REWIND' using errcode = '22023';
-    end if;
+    select p_scanner_sequence < coalesce(max(scanner_sequence), p_scanner_sequence)
+      into sequence_out_of_order
+      from admission_scan_receipts
+     where scanner_id = p_scanner_id;
 
     if p_validation_status not in ('candidate', 'rejected') then
         raise exception 'EVGL_INVALID_RECEIPT_STATUS' using errcode = '22023';
@@ -212,11 +213,13 @@ begin
     insert into admission_scan_receipts (
         receipt_id, scanner_id, scanner_key_id, scanner_sequence,
         token_id, event_id, ticket_id, order_id, scanned_at, received_at,
-        payload_hash, signature, validation_status, validation_reason
+        payload_hash, signature, validation_status, validation_reason,
+        sequence_out_of_order
     ) values (
         p_receipt_id, p_scanner_id, p_scanner_key_id, p_scanner_sequence,
         p_token_id, p_event_id, p_ticket_id, p_order_id, p_scanned_at, p_received_at,
-        p_payload_hash, p_signature, p_validation_status, p_validation_reason
+        p_payload_hash, p_signature, p_validation_status, p_validation_reason,
+        sequence_out_of_order
     );
 
     perform evgl_reconcile_ticket_admission(p_ticket_id, p_received_at);

@@ -49,6 +49,7 @@ pub struct AdmissionKeySnapshot {
 pub struct ScanReceiptClaims {
     pub receipt_id: Uuid,
     pub scanner_id: Uuid,
+    pub scanner_key_id: String,
     pub scanner_sequence: i64,
     pub token_id: Uuid,
     pub event_id: Uuid,
@@ -133,6 +134,11 @@ impl AdmissionKeySnapshot {
 
 impl ScanReceiptClaims {
     pub fn validate_shape(&self) -> Result<(), AdmissionValidationError> {
+        if self.scanner_key_id.trim().is_empty() || self.scanner_key_id.len() > 120 {
+            return Err(AdmissionValidationError(
+                "scanner_key_id must contain 1 through 120 bytes".into(),
+            ));
+        }
         if self.scanner_sequence < 0 {
             return Err(AdmissionValidationError(
                 "scanner_sequence must be non-negative".into(),
@@ -184,6 +190,7 @@ mod tests {
         let claims = ScanReceiptClaims {
             receipt_id: Uuid::new_v4(),
             scanner_id: Uuid::new_v4(),
+            scanner_key_id: "scanner-key-1".into(),
             scanner_sequence: -1,
             token_id: Uuid::new_v4(),
             event_id: Uuid::new_v4(),

@@ -1,4 +1,7 @@
+pub mod admission;
 pub mod ticketing;
+
+pub const ADMISSION_MIGRATION: &str = include_str!("../sql/003_admission.sql");
 
 pub const TICKETING_INVENTORY_MIGRATION: &str =
     include_str!("../sql/002_ticketing_inventory.sql");

@@ -1,4 +1,9 @@
-create extension if not exists pgcrypto;
+do $$
+begin
+    perform pg_advisory_xact_lock(3465001);
+    create extension if not exists pgcrypto;
+end;
+$$;
 
 create table if not exists admission_entitlements (
     ticket_id uuid primary key default gen_random_uuid(),

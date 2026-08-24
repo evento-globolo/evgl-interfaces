@@ -1,4 +1,9 @@
-create extension if not exists pgcrypto;
+do $$
+begin
+    perform pg_advisory_xact_lock(3464001);
+    create extension if not exists pgcrypto;
+end;
+$$;
 
 create table if not exists event_inventory (
     event_id uuid primary key,

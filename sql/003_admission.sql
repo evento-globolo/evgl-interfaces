@@ -224,6 +224,39 @@ begin
 end;
 $$;
 
+create or replace function evgl_revoke_admission_entitlement(
+    p_ticket_id uuid,
+    p_revoked_at timestamptz
+)
+returns bigint
+language plpgsql
+as $$
+declare
+    next_epoch bigint;
+begin
+    perform pg_advisory_xact_lock(hashtextextended(p_ticket_id::text, 3465));
+    update admission_entitlements
+       set status = 'revoked',
+           issuance_epoch = issuance_epoch + 1,
+           updated_at = p_revoked_at
+     where ticket_id = p_ticket_id and status = 'active'
+     returning issuance_epoch into next_epoch;
+    if not found then
+        select issuance_epoch into next_epoch
+          from admission_entitlements where ticket_id = p_ticket_id;
+    end if;
+    if next_epoch is null then
+        raise exception 'EVGL_ENTITLEMENT_NOT_FOUND' using errcode = 'P0002';
+    end if;
+
+    update admission_tokens
+       set revoked_at = p_revoked_at
+     where ticket_id = p_ticket_id and revoked_at is null;
+    perform evgl_reconcile_ticket_admission(p_ticket_id, p_revoked_at);
+    return next_epoch;
+end;
+$$;
+
 create or replace view admission_receipt_outcomes as
 select
     receipt.receipt_id,

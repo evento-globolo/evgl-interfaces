@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "providers": {
+    "eventbrite": {
+      "delivery_mode": "native_event",
+      "oauth": true,
+      "automated_publish": true,
+      "operations": [
+        "create",
+        "update",
+        "delete",
+        "publish",
+        "webhooks"
+      ]
+    },
+    "meetup": {
+      "delivery_mode": "native_event",
+      "oauth": true,
+      "automated_publish": true,
+      "operations": [
+        "create",
+        "update",
+        "delete",
+        "publish"
+      ]
+    },
+    "meta_facebook_page": {
+      "delivery_mode": "distribution_post",
+      "oauth": true,
+      "automated_publish": true,
+      "operations": [
+        "create_page_post",
+        "update_page_post",
+        "delete_page_post",
+        "webhooks"
+      ],
+      "disclaimer": "Not represented as native Facebook Event creation."
+    },
+    "craigslist": {
+      "delivery_mode": "manual_handoff",
+      "oauth": false,
+      "automated_publish": false,
+      "operations": [
+        "prepare_copy",
+        "open_official_posting_flow"
+      ],
+      "disclaimer": "General automated posting is disabled."
+    },
+    "generic_webhook": {
+      "delivery_mode": "signed_webhook",
+      "oauth": false,
+      "automated_publish": true,
+      "operations": [
+        "signed_delivery"
+      ]
+    }
+  }
+}

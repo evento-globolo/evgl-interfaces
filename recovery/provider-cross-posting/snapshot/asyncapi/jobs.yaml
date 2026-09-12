@@ -1,0 +1,49 @@
+asyncapi: 3.0.0
+info:
+  title: Evento Globolo Job Updates
+  version: 0.1.0
+servers:
+  production:
+    host: api.evento-globolo.example
+    pathname: /v1/jobs/{jobId}/ws
+    protocol: wss
+    security:
+      - $ref: "#/components/securitySchemes/bearer"
+channels:
+  jobUpdates:
+    address: /v1/jobs/{jobId}/ws
+    parameters:
+      jobId:
+        description: Cross-post job UUID
+    messages:
+      jobUpdate:
+        $ref: "#/components/messages/JobUpdate"
+operations:
+  receiveUpdates:
+    action: receive
+    channel:
+      $ref: "#/channels/jobUpdates"
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  messages:
+    JobUpdate:
+      payload:
+        type: object
+        required: [job_id, event_id, status, attempt, message, occurred_at]
+        properties:
+          job_id: { type: string, format: uuid }
+          event_id: { type: string, format: uuid }
+          provider:
+            type: [string, "null"]
+            enum: [eventbrite, meetup, meta_facebook_page, craigslist, generic_webhook, null]
+          status:
+            type: string
+            enum: [queued, running, published, action_required, retrying, failed]
+          attempt: { type: integer, minimum: 0 }
+          message: { type: string }
+          occurred_at: { type: string, format: date-time }
+          publication: { type: [object, "null"] }

@@ -1,0 +1,160 @@
+openapi: 3.1.0
+info:
+  title: Evento Globolo API
+  version: 0.1.0
+  description: Canonical event management and capability-aware cross-posting.
+servers:
+  - url: https://api.evento-globolo.example
+security:
+  - bearerAuth: []
+paths:
+  /healthz:
+    get:
+      security: []
+      operationId: health
+      responses:
+        "200":
+          description: Healthy
+  /v1/providers:
+    get:
+      security: []
+      operationId: listProviders
+      responses:
+        "200":
+          description: Provider capability matrix
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProviderView"
+  /v1/oauth/{provider}/start:
+    post:
+      operationId: startOAuth
+      parameters:
+        - $ref: "#/components/parameters/Provider"
+      responses:
+        "200":
+          description: OAuth authorization URL
+  /v1/connections:
+    get:
+      operationId: listConnections
+      responses:
+        "200":
+          description: Connected provider accounts
+  /v1/events:
+    post:
+      operationId: createEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEvent"
+      responses:
+        "201":
+          description: Canonical event created
+  /v1/events/{eventId}/cross-post:
+    post:
+      operationId: crossPostEvent
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 200 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targets]
+              properties:
+                targets:
+                  type: array
+                  minItems: 1
+                  items:
+                    $ref: "#/components/schemas/PublishTarget"
+      responses:
+        "202":
+          description: Job queued
+  /v1/jobs/{jobId}:
+    get:
+      operationId: getJob
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Job and provider target state
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Provider:
+      name: provider
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Provider"
+  schemas:
+    Provider:
+      type: string
+      enum: [eventbrite, meetup, meta_facebook_page, craigslist, generic_webhook]
+    ProviderView:
+      type: object
+      required: [capabilities, configured]
+      properties:
+        configured: { type: boolean }
+        capabilities:
+          type: object
+          required: [provider, delivery_mode, oauth, create, publish, requires_manual_step]
+          properties:
+            provider: { $ref: "#/components/schemas/Provider" }
+            delivery_mode:
+              type: string
+              enum: [native_event, distribution_post, signed_webhook, manual_handoff]
+            oauth: { type: boolean }
+            create: { type: boolean }
+            update: { type: boolean }
+            delete: { type: boolean }
+            publish: { type: boolean }
+            webhooks: { type: boolean }
+            requires_manual_step: { type: boolean }
+            notes:
+              type: array
+              items: { type: string }
+    CreateEvent:
+      type: object
+      required: [title, summary, description_html, starts_at, ends_at, timezone, canonical_url]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        summary: { type: string, maxLength: 280 }
+        description_html: { type: string }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        timezone: { type: string }
+        canonical_url: { type: string, format: uri }
+        online_url: { type: [string, "null"], format: uri }
+        venue: { type: [object, "null"] }
+        tags:
+          type: array
+          items: { type: string }
+        metadata: { type: object }
+    PublishTarget:
+      type: object
+      required: [provider, connection_id, options]
+      properties:
+        provider: { $ref: "#/components/schemas/Provider" }
+        connection_id: { type: string, format: uuid }
+        options:
+          $ref: "../schema/provider-target.schema.json"

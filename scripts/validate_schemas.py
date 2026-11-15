@@ -90,25 +90,47 @@ def walk_refs(node, out):
 
 
 def structural_check(doc, rel, problems):
-    """A cheap sanity pass for when `jsonschema` is not installed."""
+    """Validate schema keywords, not arbitrary objects containing similarly named keys.
+
+    A property named "type" or "required" is a name in a properties map,
+    not a JSON Schema keyword at that level. Only descend via applicator
+    keywords that contain subschemas.
+    """
     keyword_types = {
-        "properties": dict, "$defs": dict, "definitions": dict,
-        "required": list, "enum": list, "allOf": list, "anyOf": list, "oneOf": list,
-        "prefixItems": list,
+        "properties": dict, "patternProperties": dict,
+        "$defs": dict, "definitions": dict, "dependentSchemas": dict,
+        "required": list, "enum": list, "allOf": list, "anyOf": list,
+        "oneOf": list, "prefixItems": list,
     }
+    schema_maps = ("properties", "patternProperties", "$defs",
+                   "definitions", "dependentSchemas")
+    schema_singles = ("additionalProperties", "unevaluatedProperties",
+                      "items", "contains", "propertyNames", "not", "if",
+                      "then", "else", "contentSchema")
+    schema_lists = ("allOf", "anyOf", "oneOf", "prefixItems")
     stack = [doc]
     while stack:
         node = stack.pop()
-        if isinstance(node, dict):
-            for key, expected in keyword_types.items():
-                if key in node and not isinstance(node[key], expected):
-                    problems.append(Problem("error", rel, "%r must be a %s" % (key, expected.__name__)))
-            t = node.get("type")
-            if t is not None and not isinstance(t, (str, list)):
-                problems.append(Problem("error", rel, "'type' must be a string or array"))
-            stack.extend(v for v in node.values() if isinstance(v, (dict, list)))
-        elif isinstance(node, list):
-            stack.extend(v for v in node if isinstance(v, (dict, list)))
+        if not isinstance(node, dict):
+            continue
+        for key, expected in keyword_types.items():
+            if key in node and not isinstance(node[key], expected):
+                problems.append(Problem("error", rel, "%r must be a %s" % (key, expected.__name__)))
+        t = node.get("type")
+        if t is not None and not isinstance(t, (str, list)):
+            problems.append(Problem("error", rel, "'type' must be a string or array"))
+        for key in schema_maps:
+            entries = node.get(key)
+            if isinstance(entries, dict):
+                stack.extend(item for item in entries.values() if isinstance(item, dict))
+        for key in schema_singles:
+            child = node.get(key)
+            if isinstance(child, dict):
+                stack.append(child)
+        for key in schema_lists:
+            entries = node.get(key)
+            if isinstance(entries, list):
+                stack.extend(item for item in entries if isinstance(item, dict))
 
 
 def validate_repo(repo, consumers=()):

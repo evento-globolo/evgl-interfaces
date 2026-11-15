@@ -13,7 +13,7 @@ EXPECTED_REPOSITORY = "https://github.com/evento-globolo/evgl-interfaces"
 
 # Only full, line-anchored Git conflict markers are conflicts. A workflow
 # containing a grep expression for markers must not reject itself.
-CONFLICT_MARKER = re.compile(r"(?m)^(?:<{7}(?:[ \\t].*)?|={7}|>{7}(?:[ \\t].*)?)\\r?$")
+CONFLICT_MARKER = re.compile(r"(?m)^(?:<{7}(?:[ \t].*)?|={7}|>{7}(?:[ \t].*)?)\r?$")
 
 
 def has_conflict_markers(text: str) -> bool:

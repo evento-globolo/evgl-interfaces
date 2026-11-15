@@ -11,6 +11,15 @@ EXPECTED_PACKAGE = "evento-globolo/evgl-interfaces"
 EXPECTED_REPOSITORY = "https://github.com/evento-globolo/evgl-interfaces"
 
 
+# Only full, line-anchored Git conflict markers are conflicts. A workflow
+# containing a grep expression for markers must not reject itself.
+CONFLICT_MARKER = re.compile(r"(?m)^(?:<{7}(?:[ \\t].*)?|={7}|>{7}(?:[ \\t].*)?)\\r?$")
+
+
+def has_conflict_markers(text: str) -> bool:
+    return CONFLICT_MARKER.search(text) is not None
+
+
 def main() -> int:
     metadata = json.loads((ROOT / "project.json").read_text(encoding="utf-8"))
     required = [
@@ -32,7 +41,7 @@ def main() -> int:
             text = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             continue
-        if any(marker in text for marker in ("<" * 7, "=" * 7, ">" * 7)):
+        if has_conflict_markers(text):
             raise SystemExit(f"conflict marker in {path}")
         if re.search(
             r"gh[pousr]_[A-Za-z0-9]{20,}|lin_api_[A-Za-z0-9]{20,}|BEGIN [A-Z ]*PRIVATE KEY",
